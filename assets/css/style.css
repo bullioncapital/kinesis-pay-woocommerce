@@ -1,0 +1,28 @@
+.payment_method_kinesis-pay img {
+  height: 30px;
+  width: 30px;
+}
+
+.payment_method_kinesis-pay label {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.kinesis-pay-price-preview {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.kinesis-pay-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kinesis-pay-price {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}

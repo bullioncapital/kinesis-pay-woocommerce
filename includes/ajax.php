@@ -1,14 +1,23 @@
 <?php
 defined( 'ABSPATH' ) || exit;
-  
-function create_kpay_payment() {
-  $response = request_kpay_paymentId();
 
+function create_kpay_payment() {
+  try {
+    $response = request_kpay_paymentId();
+  } catch (Exception $e) {
+    error_log('create payment id exception: ' . json_encode($e));
+    wp_send_json(
+      array(
+        'type' => 'failed',
+        'message' => $e->getMessage(),
+      )
+    );
+    wp_die();
+  }
   if (isset($response->globalPaymentId)) {
-    $options = get_option('woocommerce_kinesis-pay_settings');
-    $testmode = $options['testmode'];
-    if ($testmode === 'yes') {
-      $base_url = empty($options['test_frontend_base_url']) ? "https://qa1-kms.kinesis.money" : $options['test_frontend_base_url'];
+    global $test_mode;
+    if ($test_mode === 'yes') {
+      $base_url = "https://qa1-kms.kinesis.money";
     } else {
       $base_url = 'https://kms.kinesis.money';
     }
@@ -35,7 +44,17 @@ add_action('wp_ajax_nopriv_woocommerce_create_kpay_payment', 'create_kpay_paymen
 
 function get_payment_status() {
   $payment_id = $_POST['payment_id'];
-  $response = request_payment_status($payment_id);
+  try {
+    $response = request_payment_status($payment_id);
+  } catch (Exception $e) {
+    wp_send_json(
+      array(
+        'type' => 'failed',
+        'message' => $e->getMessage(),
+      )
+    );
+    wp_die();
+  }
 
   if (isset($response->status) && $response->status === 'processed') {
     $array_result = array(

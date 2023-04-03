@@ -22,11 +22,13 @@ function getHeaders($url, $public_key, $private_key, $content = '', $method = 'G
 function call_kinesis($api, $body = '', $method = 'GET')
 {
 	$options = get_option('woocommerce_kinesis-pay_settings');
-	$testmode = $options['testmode'];
-	if ($testmode === 'yes') {
-		$base_url = empty($options['test_backend_base_url']) ? "https://qa1-api.kinesis.money" : $options['test_backend_base_url'];
-		$public_key = $options['test_publishable_key'];
-		$private_key = $options['test_private_key'];
+	global $test_mode;
+	global $test_publishable_key;
+    global $test_private_key;
+	if ($test_mode === 'yes') {
+		$base_url = "https://qa1-api.kinesis.money";
+		$public_key = $test_publishable_key;
+		$private_key = $test_private_key;
 	} else {
 		$base_url = 'https://apip.kinesis.money';
 		$public_key = $options['publishable_key'];
@@ -42,15 +44,16 @@ function call_kinesis($api, $body = '', $method = 'GET')
 	if ($method !== 'GET') {
 		$options['body'] = json_encode($body);
 	}
-
 	if ($method === 'GET') {
 		$response = wp_remote_get($url, $options);
 	} else if ($method === 'POST') {
 		$response = wp_remote_post($url, $options);
 	}
-
-	if (is_wp_error($response) || (wp_remote_retrieve_response_code($response) != 200 && wp_remote_retrieve_response_code($response) != 201)) {
-		throw new Exception('Error connecting with kinesis.', 500);
+	
+	$statusCode = wp_remote_retrieve_response_code($response);
+	if (is_wp_error($response) || ($statusCode != 200 && $statusCode != 201)) {
+		$responseBody = json_decode($response['body']);
+		throw new Exception($responseBody->message, $statusCode);
 	}
 	return $response;
 }
@@ -59,8 +62,9 @@ function request_kpay_exchange_rates($crypto_currency = 'KAU', $base_currency = 
 {
 	$request_url = 'https://api.kinesis.money/api/v1/exchange/coin-market-cap/orderbook/' . $crypto_currency . '_' . $base_currency .  '?level=1';
 	$response = wp_remote_get($request_url);
-	if (is_wp_error($response) || (wp_remote_retrieve_response_code($response) != 200 && wp_remote_retrieve_response_code($response) != 201)) {
-		throw new Exception('Failed to get cryptocurrency rates.', 500);
+	$statusCode = wp_remote_retrieve_response_code($response);
+	if (is_wp_error($response) || ($statusCode != 200 && $statusCode != 201)) {
+		throw new Exception('Failed to get cryptocurrency rates.', $statusCode);
 	}
 	return json_decode(wp_remote_retrieve_body($response));
 }
@@ -79,46 +83,48 @@ function request_kpay_paymentId()
 		$kau_rate = $kau_rates_resp->asks[0][0];
 		$kag_rate = $kag_rates_resp->asks[0][0];
 	} catch (Exception $e) {
-		error_log($e); 
+		error_log($e);
 		throw new Exception('Failed to get cryptocurrency rates.', 500);
 	}
 
 	$body = array(
 		"globalMerchantId" => $merchant_id,
-		"paymentKauAmount" => round($grand_total / $kau_rate, 5),
-		"paymentKagAmount" => round($grand_total / $kag_rate, 5),
-		"amount" => $grand_total,
+		"paymentKauAmount" => number_format(($grand_total / $kau_rate), 5),
+		"paymentKagAmount" => number_format(($grand_total / $kag_rate), 5),
+		"amount" => number_format($grand_total, 2),
 		"amountCurrency" => $currency
 	);
 
 	try {
 		$response = call_kinesis('/api/merchants/payment', $body, 'POST');
 	} catch (Exception $e) {
-		throw new Exception($e->getMessage() . ' Unable to create payment.', $e->getCode());
+		throw new Exception('Unable to create payment. ' . $e->getMessage(), $e->getCode());
 	}
-	if (is_wp_error($response) || (wp_remote_retrieve_response_code($response) != 200 && wp_remote_retrieve_response_code($response) != 201)) {
+	$statusCode = wp_remote_retrieve_response_code($response);
+	if (is_wp_error($response) || ($statusCode != 200 && $statusCode != 201)) {
 		error_log(print_r($response, true));
-		throw new Exception('Unable to create payment.', 500);
+		throw new Exception('Unable to create payment. ' . $response->get_error_message(), $statusCode);
 	}
 	
 	return json_decode(wp_remote_retrieve_body($response));
-  }
+}
   
-  function request_payment_status($payment_id) {
+function request_payment_status($payment_id) {
 	// make api call to KMS server to get payment status
 	try {
 		$response = call_kinesis('/api/merchants/payment/id/sdk/' . $payment_id, '', 'GET');
 	} catch (Exception $e) {
-		throw new Exception($e->getMessage() . ' Unable to get payment status.', $e->getCode());
+		throw new Exception('Unable to get payment status. ' . $e->getMessage(), $e->getCode());
 	}
-	if (is_wp_error($response) || (wp_remote_retrieve_response_code($response) != 200 && wp_remote_retrieve_response_code($response) != 201)) {
+	$statusCode = wp_remote_retrieve_response_code($response);
+	if (is_wp_error($response) || ($statusCode != 200 && $statusCode != 201)) {
 		error_log(print_r($response, true));
-		throw new Exception('Unable to get payment status.', 500);
+		throw new Exception('Unable to get payment status. ' . $response->get_error_message(), $statusCode);
 	}
 	return json_decode(wp_remote_retrieve_body($response));
-  }
+}
   
-  function request_approve_payment($payment_id, $order_id) {
+function request_approve_payment($payment_id, $order_id) {
 	// make api call to KMS server to get payment status
 	$body = array(
 		"globalPaymentId" => $payment_id,
@@ -128,12 +134,13 @@ function request_kpay_paymentId()
 	try {
 		$response = call_kinesis('/api/merchants/payment/confirm', $body, 'POST');
 	} catch (Exception $e) {
-		throw new Exception($e->getMessage() . ' Unable to confirm payment.', $e->getCode());
+		throw new Exception('Unable to confirm payment. ' . $e->getMessage(), $e->getCode());
 	}
-	if (is_wp_error($response) || (wp_remote_retrieve_response_code($response) != 200 && wp_remote_retrieve_response_code($response) != 201)) {
+	$statusCode = wp_remote_retrieve_response_code($response);
+	if (is_wp_error($response) || ($statusCode != 200 && $statusCode != 201)) {
 		error_log(print_r($response, true));
-		throw new Exception('Unable to confirm payment.', 500);
+		throw new Exception('Unable to confirm payment. ' . $response->get_error_message(), $statusCode);
 	}
 	
 	return json_decode(wp_remote_retrieve_body($response));
-  }
+}

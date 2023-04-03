@@ -13,3 +13,7 @@
 ## Change log
 ### Ver. 1.0.0
 1. first version released
+
+### Ver. 1.0.1
+1. Fixed bug with floating point number moving to accepting strings on client and server
+2. Removed Test Mode from Settings

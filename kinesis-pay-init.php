@@ -5,7 +5,7 @@
  * Author: Kinesis Money
  * Author URI: https://kinesis.money/
  * Description: Pay with Kinesis Money
- * Version: 1.0.0
+ * Version: 1.0.1
  */
 // Prevent public user to directly access .php files through URL
 defined( 'ABSPATH' ) || exit;

@@ -4,7 +4,13 @@
 defined('ABSPATH') || exit;
 
 global $kinesis_pay_gateway_version;
+global $test_mode;
+global $test_publishable_key;
+global $test_private_key;
 $kinesis_pay_gateway_version = '1.0.0'; // Latest plugin version
+$test_mode = 'no';
+$test_publishable_key = 'test_public_key';
+$test_private_key = 'test_private_key';
 
 /**
  * Mapping of version numbers and upgrade functions

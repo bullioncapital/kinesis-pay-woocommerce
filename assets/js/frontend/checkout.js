@@ -711,7 +711,8 @@ jQuery( function( $ ) {
 									window.location.reload();
 								}, 600000);
 							} else {
-								alert("Unable to get payment id.");
+								alert(response.message ?? 'Unable to create payment.');
+								$form.removeClass( 'processing' ).unblock();
 							}
 							return false;
 						},

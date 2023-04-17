@@ -27,6 +27,7 @@ function create_kpay_payment() {
       'data' => array(
         'payment_id' => $response->globalPaymentId,
         'redirect_url' => $base_url . '?paymentId=' . $response->globalPaymentId,
+        'assets_url' => KINESIS_PAY_DIR_URL . 'assets/images/',
       ),
       'message' => 'Payment id created.'
     );

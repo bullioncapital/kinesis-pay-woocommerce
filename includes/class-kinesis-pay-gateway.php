@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @class       Kinesis_Pay_Gateway
  * @extends     WC_Payment_Gateway
- * @version     1.0.1
+ * @version     1.0.2
  */
 class Kinesis_Pay_Gateway extends WC_Payment_Gateway
 {

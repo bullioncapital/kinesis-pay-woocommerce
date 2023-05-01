@@ -17,3 +17,7 @@
 ### Ver. 1.0.1
 1. Fixed bug with floating point number moving to accepting strings on client and server
 2. Removed Test Mode from Settings
+
+### Ver. 1.0.2
+1. Fixed shipping address issue
+2. Updated Kinesis Pay UI

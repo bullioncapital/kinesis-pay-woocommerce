@@ -1,5 +1,5 @@
 <?php
-defined( 'ABSPATH' ) || exit;
+defined('ABSPATH') || exit;
 
 function getHeaders($url, $public_key, $private_key, $content = '', $method = 'GET')
 {
@@ -13,9 +13,9 @@ function getHeaders($url, $public_key, $private_key, $content = '', $method = 'G
 		'x-signature' => $xsig
 	);
 
-  	if ($method !== 'DELETE') {
-    	$authHeaders["Content-type"] = "application/json";
-  	}
+	if ($method !== 'DELETE') {
+		$authHeaders["Content-type"] = "application/json";
+	}
 	return $authHeaders;
 }
 
@@ -24,7 +24,7 @@ function call_kinesis($api, $body = '', $method = 'GET')
 	$options = get_option('woocommerce_kinesis-pay_settings');
 	global $test_mode;
 	global $test_publishable_key;
-    global $test_private_key;
+	global $test_private_key;
 	if ($test_mode === 'yes') {
 		$base_url = "https://qa1-api.kinesis.money";
 		$public_key = $test_publishable_key;
@@ -35,7 +35,7 @@ function call_kinesis($api, $body = '', $method = 'GET')
 		$private_key = $options['private_key'];
 	}
 
-	$url = $base_url. $api;
+	$url = $base_url . $api;
 	$headers = getHeaders($api, $public_key, $private_key, $body, $method);
 	$options = array(
 		'method' => $method,
@@ -49,7 +49,7 @@ function call_kinesis($api, $body = '', $method = 'GET')
 	} else if ($method === 'POST') {
 		$response = wp_remote_post($url, $options);
 	}
-	
+
 	$statusCode = wp_remote_retrieve_response_code($response);
 	if (is_wp_error($response) || ($statusCode != 200 && $statusCode != 201)) {
 		$responseBody = json_decode($response['body']);
@@ -70,7 +70,7 @@ function request_kpay_exchange_rates($crypto_currency = 'KAU', $base_currency = 
 }
 
 function request_kpay_paymentId()
-{ 
+{
 	$options = get_option('woocommerce_kinesis-pay_settings');
 	$merchant_id = $options['merchant_id'];
 	$currency = get_woocommerce_currency();
@@ -89,9 +89,9 @@ function request_kpay_paymentId()
 
 	$body = array(
 		"globalMerchantId" => $merchant_id,
-		"paymentKauAmount" => number_format(($grand_total / $kau_rate), 5),
-		"paymentKagAmount" => number_format(($grand_total / $kag_rate), 5),
-		"amount" => number_format($grand_total, 2),
+		"paymentKauAmount" => number_format(($grand_total / $kau_rate), 5, '.', ''),
+		"paymentKagAmount" => number_format(($grand_total / $kag_rate), 5, '.', ''),
+		"amount" => number_format($grand_total, 2, '.', ''),
 		"amountCurrency" => $currency
 	);
 
@@ -105,11 +105,12 @@ function request_kpay_paymentId()
 		error_log(print_r($response, true));
 		throw new Exception('Unable to create payment. ' . $response->get_error_message(), $statusCode);
 	}
-	
+
 	return json_decode(wp_remote_retrieve_body($response));
 }
-  
-function request_payment_status($payment_id) {
+
+function request_payment_status($payment_id)
+{
 	// make api call to KMS server to get payment status
 	try {
 		$response = call_kinesis('/api/merchants/payment/id/sdk/' . $payment_id, '', 'GET');
@@ -123,8 +124,9 @@ function request_payment_status($payment_id) {
 	}
 	return json_decode(wp_remote_retrieve_body($response));
 }
-  
-function request_approve_payment($payment_id, $order_id) {
+
+function request_approve_payment($payment_id, $order_id)
+{
 	// make api call to KMS server to get payment status
 	$body = array(
 		"globalPaymentId" => $payment_id,
@@ -141,6 +143,6 @@ function request_approve_payment($payment_id, $order_id) {
 		error_log(print_r($response, true));
 		throw new Exception('Unable to confirm payment. ' . $response->get_error_message(), $statusCode);
 	}
-	
+
 	return json_decode(wp_remote_retrieve_body($response));
 }

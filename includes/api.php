@@ -80,8 +80,8 @@ function request_kpay_paymentId()
 	$kau_rates_resp = request_kpay_exchange_rates('KAU', $currency);
 	$kag_rates_resp = request_kpay_exchange_rates('KAG', $currency);
 	try {
-		$kau_rate = $kau_rates_resp->asks[0][0];
-		$kag_rate = $kag_rates_resp->asks[0][0];
+		$kau_rate = $kau_rates_resp->bids[0];
+		$kag_rate = $kag_rates_resp->bids[0];
 	} catch (Exception $e) {
 		error_log($e);
 		throw new Exception('Failed to get cryptocurrency rates.', 500);

@@ -9,8 +9,8 @@ global $test_publishable_key;
 global $test_private_key;
 $kinesis_pay_gateway_version = '1.0.0'; // Latest plugin version
 $test_mode = 'no';
-$test_publishable_key = 'test_public_key';
-$test_private_key = 'test_private_key';
+$test_publishable_key = '';
+$test_private_key = '';
 
 /**
  * Mapping of version numbers and upgrade functions
@@ -120,7 +120,7 @@ function kinesis_pay_gateway_setup_scheduled_jobs()
 
 function remove_schedule()
 {
-  $timestamp = wp_next_scheduled( 'kinesis_pay_gateway_event_update_order_status' );
+  $timestamp = wp_next_scheduled('kinesis_pay_gateway_event_update_order_status');
   if ($timestamp) {
     wp_unschedule_event($timestamp, 'kinesis_pay_gateway_event_update_order_status');
   }

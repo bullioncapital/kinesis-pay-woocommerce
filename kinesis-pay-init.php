@@ -1,14 +1,15 @@
 <?php
+
 /**
  * Plugin Name: Kinesis Pay Gateway
  * Plugin URI: https://github.com/bullioncapital/kinesis-pay-woocommerce
  * Author: Kinesis Money
  * Author URI: https://kinesis.money/
  * Description: Pay with Kinesis Money
- * Version: 1.0.2
+ * Version: 1.0.3
  */
 // Prevent public user to directly access .php files through URL
-defined( 'ABSPATH' ) || exit;
+defined('ABSPATH') || exit;
 
 // Define Version
 if (!defined('KINESIS_PAY_VER')) {
@@ -76,11 +77,12 @@ function enqueue_style()
 }
 
 // Overriding WooCommerce checkout.js
-function custom_woo_javascript() {
+function custom_woo_javascript()
+{
   $filePath = KINESIS_PAY_DIR_URL . 'assets/js/frontend/checkout.js';
   wp_deregister_script('wc-checkout');
   wp_register_script('wc-checkout', $filePath, array('jquery'));
   wp_enqueue_script('wc-checkout');
 }
 
-add_action( 'wp_enqueue_scripts', 'custom_woo_javascript' );
+add_action('wp_enqueue_scripts', 'custom_woo_javascript');

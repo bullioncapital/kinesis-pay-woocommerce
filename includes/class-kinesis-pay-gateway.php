@@ -3,7 +3,7 @@
 // namespace KinesisPayGateway;
 
 // Prevent public user to directly access .php files through URL
-defined( 'ABSPATH' ) || exit;
+defined('ABSPATH') || exit;
 
 /**
  * Kinesis Pay Gateway.
@@ -12,38 +12,38 @@ defined( 'ABSPATH' ) || exit;
  *
  * @class       Kinesis_Pay_Gateway
  * @extends     WC_Payment_Gateway
- * @version     1.0.2
+ * @version     1.0.3
  */
 class Kinesis_Pay_Gateway extends WC_Payment_Gateway
 {
   const PAYMENT_METHOD_ID = 'kinesis-pay';
 
   /**
-	 * test mode
-	 *
-	 * @var boolean
-	 */
+   * test mode
+   *
+   * @var boolean
+   */
   protected $testmode;
 
   /**
-	 * Kinesis Pay merchant id
-	 *
-	 * @var string
-	 */
+   * Kinesis Pay merchant id
+   *
+   * @var string
+   */
   protected $merchant_id;
 
   /**
-	 * Private key
-	 *
-	 * @var string
-	 */
+   * Private key
+   *
+   * @var string
+   */
   protected $private_key;
 
   /**
-	 * Public key
-	 *
-	 * @var string
-	 */
+   * Public key
+   *
+   * @var string
+   */
   protected $publishable_key;
 
   /**
@@ -94,7 +94,8 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
     );
   }
 
-  public function init_settings() {
+  public function init_settings()
+  {
     parent::init_settings();
 
     global $test_mode;
@@ -152,13 +153,14 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
     do_action('woocommerce_credit_card_form_end', $this->id);
   }
 
-  protected function update_payment_status($order_id, $payment_id, $payment_status) {
+  protected function update_payment_status($order_id, $payment_id, $payment_status)
+  {
     global $wpdb;
     $tablename = $wpdb->prefix . 'kinesis_payments';
 
     $result = $wpdb->get_results($wpdb->prepare(
       "SELECT * FROM $tablename WHERE `order_id` = %d AND `payment_id` = %s ORDER BY `id` DESC",
-      array($order_id, $payment_id )
+      array($order_id, $payment_id)
     ));
     $hasRecord = !!count($result);
     if (!$hasRecord) {

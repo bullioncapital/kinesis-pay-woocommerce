@@ -22,15 +22,17 @@ function getHeaders($url, $public_key, $private_key, $content = '', $method = 'G
 function call_kinesis($api, $body = '', $method = 'GET')
 {
 	$options = get_option('woocommerce_kinesis-pay_settings');
+	global $api_base_url;
+	global $test_api_base_url;
 	global $test_mode;
 	global $test_publishable_key;
 	global $test_private_key;
 	if ($test_mode === 'yes') {
-		$base_url = "https://qa1-api.kinesis.money";
+		$base_url = $test_api_base_url;
 		$public_key = $test_publishable_key;
 		$private_key = $test_private_key;
 	} else {
-		$base_url = 'https://apip.kinesis.money';
+		$base_url = $api_base_url;
 		$public_key = $options['publishable_key'];
 		$private_key = $options['private_key'];
 	}

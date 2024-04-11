@@ -6,7 +6,7 @@
  * Author: Kinesis Money
  * Author URI: https://kinesis.money/
  * Description: Pay with Kinesis Money
- * Version: 1.0.3
+ * Version: 1.0.4
  */
 // Prevent public user to directly access .php files through URL
 defined('ABSPATH') || exit;
@@ -79,10 +79,15 @@ function enqueue_style()
 // Overriding WooCommerce checkout.js
 function custom_woo_javascript()
 {
+  if (!is_checkout()) {
+    return;
+  }
   $filePath = KINESIS_PAY_DIR_URL . 'assets/js/frontend/checkout.js';
   wp_deregister_script('wc-checkout');
   wp_register_script('wc-checkout', $filePath, array('jquery'));
   wp_enqueue_script('wc-checkout');
+  wp_enqueue_script('kpay-qr-code-lib', KINESIS_PAY_DIR_URL . 'assets/js/lib/qrcode.min.js', array(), '1.0.0', true);
+  wp_enqueue_script('kpay-wc-checkout-preload', KINESIS_PAY_DIR_URL . 'assets/js/frontend/checkout-preload.js', array(), '1.0.0', true);
 }
 
 add_action('wp_enqueue_scripts', 'custom_woo_javascript');

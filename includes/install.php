@@ -4,13 +4,21 @@
 defined('ABSPATH') || exit;
 
 global $kinesis_pay_gateway_version;
+global $api_base_url;
+global $kms_base_url;
 global $test_mode;
 global $test_publishable_key;
 global $test_private_key;
-$kinesis_pay_gateway_version = '1.0.0'; // Latest plugin version
+global $test_api_base_url;
+global $test_kms_base_url;
+$kinesis_pay_gateway_version = '1.0.4'; // Latest plugin version
+$api_base_url = 'https://apip.kinesis.money';
+$kms_base_url = 'https://kms.kinesis.money';
 $test_mode = 'no';
 $test_publishable_key = '';
 $test_private_key = '';
+$test_api_base_url = 'https://qa1-api.kinesis.money';
+$test_kms_base_url = 'https://qa1-kms.kinesis.money';
 
 /**
  * Mapping of version numbers and upgrade functions

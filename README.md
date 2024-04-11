@@ -31,3 +31,7 @@
 1. Remove thousands separator from amounts
 2. Update fetching rates api call as per api changes
 3. Change to use bid price instead of ask
+
+### Ver. 1.0.4
+
+1. Replace QR code generator

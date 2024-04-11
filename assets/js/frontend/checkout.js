@@ -576,7 +576,6 @@ jQuery( function( $ ) {
 			if ( $form.triggerHandler( 'checkout_place_order' ) !== false && $form.triggerHandler( 'checkout_place_order_' + wc_checkout_form.get_payment_method() ) !== false ) {
 
 				$form.addClass( 'processing' );
-
 				wc_checkout_form.blockOnSubmit( $form );
 
 				if (wc_checkout_form.selectedPaymentMethod === 'payment_method_kinesis-pay') {
@@ -591,6 +590,12 @@ jQuery( function( $ ) {
 						return;
 					}
 
+					const kpay_modal = $('#kinesis-pay-modal');
+					if (!kpay_modal.length) {
+						alert('Something went wrong. Please try again.');
+						window.location.reload();
+						return false;
+					}
 					// Create a payment id (Ajax) in KMS
 					$.ajax({
 						type : "post",
@@ -610,106 +615,20 @@ jQuery( function( $ ) {
 									height: '100vh'
 								});
 
-								const kpay_modal = $('#kinesis-pay-modal');
-								if (kpay_modal.length) {
-									kpay_modal.show();
-								} else {
-									$("body").append(`
-										<script>
-											function copyPaymentId() {
-												var copyText = document.getElementById("payment-id-text");
-												copyText.select();
-												document.execCommand("Copy");
-												alert("Payment ID has been copied.");
-											}
-										</script>
-										<div id="kinesis-pay-modal">
-											<div id="kinesis-pay-modal-content">
-												<div class="kinesis-pay-modal-logo-wrapper">
-													<img src="${assets_url}Kinesis-Pay-logo.svg" style="width: auto; height: 48px;">
-													<span class="kinesis-pay-modal-logo-title">Pay with K-Pay</span>
-												</div>
-												<span class="kinesis-pay-instructions">Scan the QR code with the Kinesis mobile app to complete the payment
-													<img style="display: inline-block; position: relative; top: 3px; width: 16px; height: 16px;"
-														src="${assets_url}Scan-QRCode.svg">
-												</span>
-												<img style="display: block; width: 200px;max-height: 200px;"
-													src="https://chart.googleapis.com/chart?chs=150x150&amp;cht=qr&amp;chl=${kms_url}&amp;choe=UTF-8">
-												<a style="display: block; white-space: nowrap; text-decoration: none; color: #017DE8;"
-													href="${kms_url}" target="_blank">OR make the payment using the KMS</a>
-												<div style="display: flex; justify-content: space-between; gap: 8px; flex-direction: column; align-items: center; margin-top: 24px;">
-													<span>Payment ID</span>
-													<div class="kinesis-pay-payment-info">
-														<input id="payment-id-text" type="text" value="${payment_id}" id="payment_id_value" readonly>
-														<button id="copy-button" onclick="copyPaymentId()">Copy</button>
-													</div>
-													<a style="display: block; white-space: nowrap; text-decoration: none; color: #017DE8;"
-														href="/checkout">Close</a>
-												</div>
-											</div>
-										</div>
-										<style>
-											#kinesis-pay-modal {
-												display: flex;
-												align-items: center;
-												position: absolute; 
-												top: 0;
-												display: flex; 
-												justify-content: center;
-												width: 100%; 
-												height: 100vh; 
-												background-color: rgba(13, 29, 44, 0.9); 
-												z-index: 999100;
-											}
-											#kinesis-pay-modal-content {
-												display: flex; 
-												flex-direction: column;
-												justify-content: center; 
-												align-items: center;
-												height: min-content; 
-												background-color: white;
-												border-radius: 4px; 
-												padding: 48px 32px; 
-												max-width: 430px;
-											}
-											.kinesis-pay-modal-logo-wrapper {
-												display: flex;
-												flex-direction: column;
-												gap: 12px;
-												align-items: center;
-												margin-bottom: 16px;
-											}
-											.kinesis-pay-modal-logo-title {
-												font-size: 20px;
-												text-transform: uppercase;
-											}
-											.kinesis-pay-instructions {
-												text-align: center;
-												line-height: 20px;
-											}
-											.kinesis-pay-payment-info {
-												display: flex;
-												margin-bottom: 16px;
-											}
-											#copy-button {
-												display: inline-block;
-												color: #FFFFFF;
-												background-color: #017DE8;
-												border-radius: 4px;
-												padding: 0px 16px;
-											}
-											#payment-id-text {
-												display: inline-block;
-												color: #0D1D2C;
-												background-color: #FFFFFF;
-												box-shadow: none;
-												border-radius: 4px;
-												border: 1px solid #E5E7E8;
-												padding: 4px 12px;
-											}
-										</style>
-									`);
-								}
+								const qrcode_elem = document.getElementById("kpay-qrcode");
+								new QRCode(qrcode_elem, {
+									text: kms_url,
+									width: 160,
+									height: 160,
+									colorDark : "#000000",
+									colorLight : "#ffffff",
+									correctLevel : QRCode.CorrectLevel.L
+								});
+								document.getElementById("kpay-logo").setAttribute("src", `${assets_url}Kinesis-Pay-logo.svg`);
+								document.getElementById("kpay-instruction-img").setAttribute("src", `${assets_url}Scan-QRCode.svg`);
+								document.getElementById("kpay-payment-link").setAttribute("href", kms_url);
+								document.getElementById("payment-id-text").setAttribute("value", payment_id);
+								kpay_modal.show();
 
 								const checkStatusTimer = setInterval(function () {
 									$.ajax({
@@ -753,7 +672,7 @@ jQuery( function( $ ) {
 						},
 						error:	function( error ) {
 							alert('Something went wrong. Please try again.');
-							$form.removeClass( 'processing' ).unblock();
+							window.location.reload();
 						}
 					});
 					return false;

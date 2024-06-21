@@ -578,7 +578,8 @@ jQuery( function( $ ) {
 				$form.addClass( 'processing' );
 				wc_checkout_form.blockOnSubmit( $form );
 
-				if (wc_checkout_form.selectedPaymentMethod === 'payment_method_kinesis-pay') {
+				const kpay_gateway_id = 'payment_method_kinesis_pay_gateway';
+				if (wc_checkout_form.selectedPaymentMethod === kpay_gateway_id) {
 					// Validate checkout form before creating a payment
 					const shipToDiff = !!document.querySelector('#ship-to-different-address-checkbox')?.checked;
 					const requiredInputs = $('.validate-required').filter((i, elem) => {
@@ -608,7 +609,13 @@ jQuery( function( $ ) {
 								const kms_url = response.data.redirect_url;
 								const assets_url = response.data.assets_url;
 
-								$('.payment_method_kinesis-pay').append(`<input type="hidden" id="kpay-payment-id" name="kpay-payment-id" value="${payment_id}" />`);
+								const hidden_input = $('#kpay-payment-id');
+								if (!hidden_input.length) {
+									$(`.${kpay_gateway_id}`).first().append(`<input type="hidden" id="kpay-payment-id" name="kpay-payment-id" value="${payment_id}" />`);	
+								} else {
+									hidden_input.val(payment_id);
+								}
+								
 								window.scrollTo(0,0);
 								$('html, body').css({
 									overflow: 'hidden',
@@ -646,8 +653,9 @@ jQuery( function( $ ) {
 													return false;
 												} else if (payment_status === 'rejected') {
 													clearInterval(checkStatusTimer);
-													alert('Payment has been rejected. Please try again.');
-													window.location.reload();
+													if(!alert('Payment has been rejected. Please try again.')){
+														window.location.reload();
+													}
 													return false;
 												}
 											}
@@ -671,7 +679,7 @@ jQuery( function( $ ) {
 							return false;
 						},
 						error:	function( error ) {
-							alert('Something went wrong. Please try again.');
+							alert(error.responseJSON && error.responseJSON.message ? error.responseJSON.message : 'Something went wrong. Please try again.');
 							window.location.reload();
 						}
 					});

@@ -1,30 +1,36 @@
 <?php
+
 /**
  * Kinesis-Pay-Gateway Uninstall
  *
- * Uninstalling Kinesis-Pay-Gateway
- *
  * @package Kinesis-Pay-Gateway\Uninstaller
- * @version 0.1.0
+ * @version 1.1.0
  */
 
- /**
-  * If the plugin can not be written without running code within the plugin, then the plugin should create a file named 'uninstall.php' in the base plugin folder.
-  * This file will be called, if it exists, during the uninstall process bypassing the uninstall hook.
-  */
-defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
+/**
+ * Will be called, if it exists, during the uninstall process bypassing the uninstall hook.
+ */
+defined('WP_UNINSTALL_PLUGIN') || exit;
 
+// Remove all Kinesis Pay pages
+$pages = array(
+  'kpay-payment-error',
+);
+foreach ($pages as $page_slug) {
+  $page = get_page_by_path($page_slug, OBJECT, 'page');
+  if (isset($page)) {
+    wp_delete_post($page->ID);
+  }
+}
+
+// Remove all Kinesis Pay Gateway tables
 global $wpdb;
-
-// All tables to be removed should be added to here
 $tables = array(
   'kinesis_payments',
 );
-
-// Remove all Kinesis Pay Gateway tables
-foreach( $tables as $table ) {
-  $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}" . $table );
+foreach ($tables as $table) {
+  $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}" . $table);
 }
 
 // Remove all Kinesis Pay Gateway options
-delete_option( 'kinesis_pay_gateway_version' );
+delete_option('kinesis_pay_gateway_version');

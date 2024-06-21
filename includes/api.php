@@ -1,6 +1,16 @@
 <?php
 defined('ABSPATH') || exit;
 
+/**
+ * Get request headers
+ *
+ * @param  string $url
+ * @param  string $public_key
+ * @param  string $private_key
+ * @param  string $content
+ * @param  string $method
+ * @return array
+ */
 function getHeaders($url, $public_key, $private_key, $content = '', $method = 'GET')
 {
 	$nonce = time() * 1000 + rand(1, 10);
@@ -19,18 +29,24 @@ function getHeaders($url, $public_key, $private_key, $content = '', $method = 'G
 	return $authHeaders;
 }
 
+/**
+ * Call Kinesis API
+ *
+ * @param  string $api
+ * @param  string $body
+ * @param  string $method
+ * @return object
+ */
 function call_kinesis($api, $body = '', $method = 'GET')
 {
-	$options = get_option('woocommerce_kinesis-pay_settings');
+	$options = get_option('woocommerce_kinesis_pay_gateway_settings');
 	global $api_base_url;
 	global $test_api_base_url;
 	global $test_mode;
-	global $test_publishable_key;
-	global $test_private_key;
 	if ($test_mode === 'yes') {
 		$base_url = $test_api_base_url;
-		$public_key = $test_publishable_key;
-		$private_key = $test_private_key;
+		$public_key = $options['test_publishable_key'];
+		$private_key = $options['test_private_key'];
 	} else {
 		$base_url = $api_base_url;
 		$public_key = $options['publishable_key'];
@@ -54,12 +70,19 @@ function call_kinesis($api, $body = '', $method = 'GET')
 
 	$statusCode = wp_remote_retrieve_response_code($response);
 	if (is_wp_error($response) || ($statusCode != 200 && $statusCode != 201)) {
-		$responseBody = json_decode($response['body']);
-		throw new Exception($responseBody->message, $statusCode);
+		error_log(print_r(json_encode($response), true));
+		throw new Exception($response['body'], $statusCode);
 	}
 	return $response;
 }
 
+/**
+ * Request exchange rates from Kinesis API
+ *
+ * @param  string $crypto_currency
+ * @param  string $base_currency
+ * @return object
+ */
 function request_kpay_exchange_rates($crypto_currency = 'KAU', $base_currency = 'USD')
 {
 	$request_url = 'https://api.kinesis.money/api/v1/exchange/coin-market-cap/orderbook/' . $crypto_currency . '_' . $base_currency .  '?level=1';
@@ -71,10 +94,16 @@ function request_kpay_exchange_rates($crypto_currency = 'KAU', $base_currency = 
 	return json_decode(wp_remote_retrieve_body($response));
 }
 
+/**
+ * Request for creating a new payment
+ *
+ * @return object
+ */
 function request_kpay_paymentId()
 {
-	$options = get_option('woocommerce_kinesis-pay_settings');
-	$merchant_id = $options['merchant_id'];
+	global $test_mode;
+	$options = get_option('woocommerce_kinesis_pay_gateway_settings');
+	$merchant_id = $test_mode === 'yes' ? $options['test_merchant_id'] : $options['merchant_id'];
 	$currency = get_woocommerce_currency();
 	$grand_total = (float) WC()->cart->total;
 
@@ -111,6 +140,12 @@ function request_kpay_paymentId()
 	return json_decode(wp_remote_retrieve_body($response));
 }
 
+/**
+ * Request for payment status
+ *
+ * @param  string $payment_id
+ * @return object
+ */
 function request_payment_status($payment_id)
 {
 	// make api call to KMS server to get payment status
@@ -127,6 +162,13 @@ function request_payment_status($payment_id)
 	return json_decode(wp_remote_retrieve_body($response));
 }
 
+/**
+ * Request for approving a payment
+ *
+ * @param  string $payment_id
+ * @param  string $order_id
+ * @return object
+ */
 function request_approve_payment($payment_id, $order_id)
 {
 	// make api call to KMS server to get payment status

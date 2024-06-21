@@ -14,7 +14,7 @@
 
 ### Ver. 1.0.0
 
-1. first version released
+1. First version released
 
 ### Ver. 1.0.1
 
@@ -28,10 +28,21 @@
 
 ### Ver. 1.0.3
 
-1. Remove thousands separator from amounts
-2. Update fetching rates api call as per api changes
-3. Change to use bid price instead of ask
+1. Removed thousands separator from amounts
+2. Updated fetching rates api call as per api changes
+3. Changed to use bid price instead of ask
 
 ### Ver. 1.0.4
 
 1. Replace QR code generator
+
+### Ver. 1.1.0
+
+1. Removed `Kinesis-Pay Payment Status` column from order list view in admin
+2. Added new fields to Kinesis Pay table
+3. Added `Payment Details - Kinesis Pay` card with payment details to order details view in admin
+4. Added `Show Payment Log` to settings, and `Payment log` to order details view
+5. Changed `Payment status` to indicate payment confirmation
+6. Removed `Close` button from QR code popup
+7. Changed to support Wordpress multisite
+8. Fixed compatibility issues with HPOS

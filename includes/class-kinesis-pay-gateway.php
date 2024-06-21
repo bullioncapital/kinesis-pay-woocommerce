@@ -1,7 +1,5 @@
 <?php
 
-// namespace KinesisPayGateway;
-
 // Prevent public user to directly access .php files through URL
 defined('ABSPATH') || exit;
 
@@ -12,11 +10,12 @@ defined('ABSPATH') || exit;
  *
  * @class       Kinesis_Pay_Gateway
  * @extends     WC_Payment_Gateway
- * @version     1.0.4
+ * @version     1.1.0
  */
 class Kinesis_Pay_Gateway extends WC_Payment_Gateway
 {
-  const PAYMENT_METHOD_ID = 'kinesis-pay';
+  const PAYMENT_METHOD_ID = 'kinesis_pay_gateway';
+  const STATUS_PROCESSED = 'processed';
 
   /**
    * test mode
@@ -68,10 +67,13 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
 
   /**
    * Initialise Gateway Settings Form Fields.
+   *
+   * @return void
    */
   public function init_form_fields()
   {
-    $this->form_fields = array(
+    global $test_mode;
+    $prod_fields = array(
       'enabled' => array(
         'title' => 'Enable/Disable',
         'label' => 'Enable Kinesis Pay Gateway',
@@ -90,23 +92,63 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
       'private_key' => array(
         'title' => 'Live Private Key',
         'type' => 'password'
-      )
+      ),
+      'debug_mode_enabled' => array(
+        'title' => 'Show Payment Log',
+        'label' => 'Enabled',
+        'type' => 'checkbox',
+        'description' => '',
+        'default' => 'no'
+      ),
     );
+    if ($test_mode === 'yes') {
+      $test_fields = array(
+        'test_merchant_id' => array(
+          'title' => 'TEST Merchant ID',
+          'type' => 'text'
+        ),
+        'test_publishable_key' => array(
+          'title' => 'TEST Publishable Key',
+          'type' => 'text'
+        ),
+        'test_private_key' => array(
+          'title' => 'TEST Private Key',
+          'type' => 'password'
+        ),
+      );
+      $this->form_fields = array_merge($prod_fields, $test_fields);
+    } else {
+      $this->form_fields = $prod_fields;
+    }
   }
 
+  /**
+   * init_settings
+   *
+   * @return void
+   */
   public function init_settings()
   {
     parent::init_settings();
 
     global $test_mode;
-    $this->title = 'Kinesis Pay';
-    $this->description = 'Pay with Gold or Silver using Kinesis Pay';
-    $this->testmode = 'yes' === $test_mode;
+    $test_mode_enabled = 'yes' === $test_mode;
+    $this->title = __('Kinesis Pay');
+    $this->description = __('Pay with Gold or Silver using Kinesis Pay');
+    $this->has_fields         = false;
+    $this->method_title = $test_mode_enabled ? __('Kinesis Pay - TEST MODE') : __('Kinesis Pay');
+    $this->method_description = __('Pay with Gold or Silver using Kinesis Pay');
+    $this->testmode = $test_mode_enabled;
     $this->merchant_id = $this->get_option('merchant_id');
     $this->private_key = $this->testmode ? $this->get_option('test_private_key') : $this->get_option('private_key');
     $this->publishable_key = $this->testmode ? $this->get_option('test_publishable_key') : $this->get_option('publishable_key');
   }
 
+  /**
+   * payment_scripts
+   *
+   * @return void
+   */
   public function payment_scripts()
   {
     // we need JavaScript to process a token only on cart/checkout pages, right?
@@ -139,6 +181,11 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
     );
   }
 
+  /**
+   * Render the payment fields
+   *
+   * @return void
+   */
   public function payment_fields()
   {
     if ($this->description) {
@@ -153,35 +200,44 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
     do_action('woocommerce_credit_card_form_end', $this->id);
   }
 
-  protected function update_payment_status($order_id, $payment_id, $payment_status)
+  /**
+   * Update payment details
+   *
+   * @param  object $payment_details
+   * @param  string $description
+   * @return void
+   */
+  protected function update_payment_details($payment_details, $description)
   {
     global $wpdb;
     $tablename = $wpdb->prefix . 'kinesis_payments';
 
     $result = $wpdb->get_results($wpdb->prepare(
-      "SELECT * FROM $tablename WHERE `order_id` = %d AND `payment_id` = %s ORDER BY `id` DESC",
-      array($order_id, $payment_id)
+      "SELECT * FROM $tablename WHERE `payment_id` = %s ORDER BY `id` DESC",
+      array($payment_details->payment_id)
     ));
-    $hasRecord = !!count($result);
-    if (!$hasRecord) {
-      $wpdb->query(
-        $wpdb->prepare(
-          "INSERT INTO $tablename
-          ( order_id, payment_id, payment_status, created_at )
-          VALUES ( %d, %s, %s, UTC_TIMESTAMP() )",
-          $order_id,
-          $payment_id,
-          'pending'
-        )
-      );
-    } else if ($result[0]->payment_status !== $payment_status) {
+    if (!!count($result)) {
       $kpay_id = $result[0]->id;
       $wpdb->query(
         $wpdb->prepare(
           "UPDATE $tablename
-          SET `payment_status`= %s, updated_at = UTC_TIMESTAMP()
+          SET `payment_status`= %s, order_id = %d, kpay_order_id = %s, payment_currency = %s, payment_amount = %.5f, payment_fee = %.5f, usd_converted_amount = %.2f, payment_kau_amount = %.5f, payment_kag_amount = %.5f, updated_at = %s, created_at = %s, expiry_at = %s, `description` = %s
           WHERE `id` = $kpay_id",
-          array($payment_status)
+          array(
+            $payment_details->payment_status,
+            $payment_details->order_id,
+            $payment_details->kpay_order_id,
+            $payment_details->payment_currency,
+            $payment_details->payment_amount,
+            $payment_details->payment_fee,
+            $payment_details->usd_converted_amount,
+            $payment_details->payment_kau_amount,
+            $payment_details->payment_kag_amount,
+            $payment_details->updated_at,
+            $payment_details->created_at,
+            $payment_details->expiry_at,
+            $result[0]->description . current_time('Y-m-d H:i:s', true) . ' ' . $description . '\n',
+          )
         )
       );
     }
@@ -199,16 +255,33 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
 
     $payment_status_ok = false;
     $response = request_payment_status($payment_id);
+
     $payment_status_ok = isset($response->status) && $response->status === 'processed';
+
+    $payment_details = new stdClass;
+    $payment_details->order_id = $order_id;
+    $payment_details->payment_id = $payment_id;
+    $payment_details->payment_status = $response->status;
+    $payment_details->kpay_order_id = isset($response->orderId) ? $response->orderId : null;
+    $payment_details->payment_currency = isset($response->paymentCurrency) ? $response->paymentCurrency : null;
+    $payment_details->payment_amount = isset($response->paymentAmount) ? $response->paymentAmount : null;
+    $payment_details->payment_fee = isset($response->paymentFee) ? $response->paymentFee : null;
+    $payment_details->usd_converted_amount = isset($response->usdConvertedAmount) ? $response->usdConvertedAmount : null;
+    $payment_details->payment_kau_amount = $response->paymentKauAmount;
+    $payment_details->payment_kag_amount = $response->paymentKagAmount;
+    $payment_details->created_at = $response->createdAt;
+    $payment_details->updated_at = $response->updatedAt;
+    $payment_details->expiry_at = $response->expiryAt;
 
     if (!$payment_status_ok) {
       throw new Exception(__('Incorrect payment status.', 'kinesis-pay-gateway'));
     }
-    $this->update_payment_status($order_id, $payment_id, 'processed');
+    $this->update_payment_details($payment_details, 'Payment processed. Updated payment details.');
 
     $payment_approved = false;
     $response = request_approve_payment($payment_id, $order_id);
-    $payment_approved = isset($response->status) && $response->status === 'processed';
+
+    $payment_approved = isset($response->status) && $response->status === self::STATUS_PROCESSED;
 
     if (!$payment_approved) {
       return array(
@@ -216,9 +289,16 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
         'redirect' => 'kpay-payment-error'
       );
     }
-    $this->update_payment_status($order_id, $payment_id, 'confirmed');
 
-    global $woocommerce;
+    /**
+     * processed is the final payment status
+     * kpay_order_id will be filled once the payment is approved/confirmed
+     */
+    $payment_details->kpay_order_id = isset($response->orderId) ? $response->orderId : null;
+    $payment_details->payment_status = $response->status;
+    $payment_details->updated_at = $response->updatedAt;
+    $this->update_payment_details($payment_details, 'Payment confirmed. Updated payment order_id.');
+
     $order = wc_get_order($order_id);
 
     if ($order->get_total() <= 0) {
@@ -227,8 +307,10 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
     }
 
     $order->payment_complete();
-    $order->add_order_note('Thank you for paying with kinesis-pay', true);
-    $woocommerce->cart->empty_cart();
+
+    if (isset(WC()->cart)) {
+      WC()->cart->empty_cart();
+    }
 
     return array(
       'result' => 'success',

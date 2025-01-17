@@ -4,7 +4,6 @@
  * Kinesis-Pay-Gateway Uninstall
  *
  * @package Kinesis-Pay-Gateway\Uninstaller
- * @version 1.1.0
  */
 
 /**
@@ -23,14 +22,5 @@ foreach ($pages as $page_slug) {
   }
 }
 
-// Remove all Kinesis Pay Gateway tables
-global $wpdb;
-$tables = array(
-  'kinesis_payments',
-);
-foreach ($tables as $table) {
-  $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}" . $table);
-}
-
 // Remove all Kinesis Pay Gateway options
-delete_option('kinesis_pay_gateway_version');
+delete_network_option(null, 'kinesis_pay_gateway_version');

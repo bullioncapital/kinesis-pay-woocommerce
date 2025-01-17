@@ -46,3 +46,23 @@
 6. Removed `Close` button from QR code popup
 7. Changed to support Wordpress multisite
 8. Fixed compatibility issues with HPOS
+
+### Ver. 1.1.1
+
+1. Added from_address, to_address and transaction_hash
+2. Removed `paymentKauAmount` and `paymentKagAmount` from createPayment request
+
+### Ver. 2.0.0
+
+1. Changed to support block-based checkout page
+2. Changed to create a Pending status order before payment is processed
+3. Removed unused cron job
+4. Removed custom error page
+5. Changed to cancel/process a pending order as per payment status in admin and inventory cron job
+6. Changed to use the existing valid payment on placing order if there's one
+7. Appended KPay payment ID to payment method on order received page, customer account order details page and admin order details page
+8. Added replace_title_with_icon and hide_description settings
+9. Changed to disable the gateway if selected currency is not supported
+10. Some UI changes in frontend and admin
+11. Enhanced error handling
+12. Enhanced form data security check

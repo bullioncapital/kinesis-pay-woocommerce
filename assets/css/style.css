@@ -7,10 +7,11 @@
   justify-content: center;
   width: 100%; 
   height: 100vh; 
+  color: #0D1D2C;
   background-color: rgba(13, 29, 44, 0.9); 
   z-index: 999100;
 }
-#kinesis-pay-modal-content {
+#kinesis-pay-modal__content {
   display: flex; 
   gap: 16px;
   flex-direction: column;
@@ -22,49 +23,45 @@
   padding: 48px 32px; 
   max-width: 430px;
 }
-#kpay-logo {
+.kinesis-pay-modal__kpay-logo,
+.woocommerce-page img.kinesis-pay-modal__kpay-logo {
   width: auto;
   height: 48px;
 }
-#kpay-instruction-img {
-  display: inline-block;
-  position: relative;
-  top: 3px;
-  width: 16px;
-  height: 16px;
-}
-#kpay-payment-link {
+#kinesis-pay-modal__payment-link {
   display: block;
   white-space: nowrap;
   text-decoration: none;
   color: #017DE8;
 }
-.kinesis-pay-modal-logo-wrapper {
+.kinesis-pay-modal__logo-wrapper {
   display: flex;
   flex-direction: column;
   gap: 12px;
   align-items: center;
   margin-bottom: 16px;
 }
-.kinesis-pay-modal-logo-title {
-  font-size: 20px;
-  text-transform: uppercase;
-}
-#kpay-qrcode {
+#kinesis-pay-modal__kpay-qrcode {
   display: flex;
   justify-content: center;
   width: 200px;
   max-height: 200px;
 }
-.kinesis-pay-instructions {
+.kinesis-pay-modal__instructions-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}
+.kinesis-pay-modal__instructions {
   text-align: center;
   line-height: 20px;
 }
-.kinesis-pay-payment-info {
+.kinesis-pay-modal__payment-info {
   display: flex;
   margin-bottom: 16px;
 }
-.kinesis-pay-modal-payment-id-copy-wrapper {
+.kinesis-pay-modal__payment-id-copy-wrapper {
   display: flex;
   justify-content:
   space-between;
@@ -73,21 +70,24 @@
   align-items: center;
   margin-top: 12px;
 }
-.kpay-copy-button {
+.kinesis-pay-modal__button,
+.kinesis-pay-modal__copy-button {
   display: inline-block;
   color: #FFFFFF;
   background-color: #017DE8;
   border-radius: 4px;
   border: none;
-  padding: 0px 16px;
+  padding: 0 16px;
   cursor: pointer;
 }
-.kpay-copy-button.disabled {
+.kinesis-pay-modal__button.disabled,
+.kinesis-pay-modal__button:disabled,
+.kinesis-pay-modal__button[disabled] {
   color: #111111;
   background-color: #d3d3d3;
   cursor: not-allowed;
 }
-#payment-id-text {
+#kinesis-pay-modal__payment-id-text {
   display: inline-block;
   color: #0D1D2C;
   background-color: #FFFFFF;
@@ -95,4 +95,15 @@
   border-radius: 4px;
   border: 1px solid #E5E7E8;
   padding: 4px 12px;
+}
+.kinesis-pay-modal__timeout-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.woocommerce-checkout #payment ul.payment_methods li img#kpay-payment-method-logo {
+  margin-left: 0;
+}
+.kinesis-pay-modal__cart-button {
+  padding: 8px 16px;
 }

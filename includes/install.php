@@ -6,17 +6,14 @@ defined('ABSPATH') || exit;
 global $kinesis_pay_gateway_version;
 global $api_base_url;
 global $kms_base_url;
-global $test_mode;
 global $test_api_base_url;
 global $test_kms_base_url;
 
-$kinesis_pay_gateway_version = '1.1.0'; // Latest plugin version
-$test_mode = 'yes';  // yes | no
+$kinesis_pay_gateway_version = '1.1.1'; // Latest plugin version
 $api_base_url = 'https://apip.kinesis.money';
 $kms_base_url = 'https://kms.kinesis.money';
 $test_api_base_url = 'https://qa1-api.kinesis.money';
 $test_kms_base_url = 'https://qa1-kms.kinesis.money';
-
 
 /**
  * Mapping of version numbers and upgrade functions
@@ -32,6 +29,12 @@ function get_kinesis_pay_gateway_updates()
     '1.1.0' => array(
       'kinesis_pay_gateway_update_1_1_0',
     ),
+    '1.1.1' => array(
+      'kinesis_pay_gateway_update_1_1_1',
+    ),
+    '2.0.0' => array(
+      'kinesis_pay_gateway_update_2_0_0',
+    )
   );
 }
 
@@ -44,7 +47,7 @@ function get_kinesis_pay_gateway_updates()
  */
 function kinesis_pay_gateway_update_db_check()
 {
-  global $kinesis_pay_gateway_version;
+  $plugin_version = KINESIS_PAY_VERSION; // Latest plugin version
   $version_key = 'kinesis_pay_gateway_version';
   $current_version = get_option($version_key);
 
@@ -59,7 +62,7 @@ function kinesis_pay_gateway_update_db_check()
      */
     if (
       (!$current_version || version_compare($current_version, $version, '<'))
-      && version_compare($version, $kinesis_pay_gateway_version, '<=')
+      && version_compare($version, $plugin_version, '<=')
     ) {
       foreach ($update_callbacks as $update_callback) {
         if (function_exists($update_callback)) {
@@ -69,9 +72,9 @@ function kinesis_pay_gateway_update_db_check()
     }
   }
   if (!$current_version) {
-    add_option($version_key, $kinesis_pay_gateway_version);
+    add_option($version_key, $plugin_version);
   } else {
-    update_option($version_key, $kinesis_pay_gateway_version);
+    update_option($version_key, $plugin_version);
   }
 }
 
@@ -96,88 +99,6 @@ function kinesis_pay_gateway_update_1_0_0()
 
   require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
   dbDelta($sql);
-
-  kinesis_pay_gateway_setup_scheduled_jobs();
-  kinesis_pay_gateway_update_1_0_0_add_page();
-}
-
-/**
- * get_order_status_checking_schedule
- *
- * @param  array $schedules
- * @return array
- */
-function get_order_status_checking_schedule($schedules)
-{
-  $schedules['kpay_order_status_checking_schedule'] = array(
-    'interval'  => 300,
-    'display'   => __('Kpay order status checking schedule', 'textdomain')
-  );
-  return $schedules;
-}
-add_filter('cron_schedules', 'get_order_status_checking_schedule');
-
-/**
- * Setup cron job
- * 
- * @return void
- */
-function kinesis_pay_gateway_setup_scheduled_jobs()
-{
-  $timestamp = wp_next_scheduled('kinesis_pay_gateway_event_update_order_status');
-  if (!$timestamp) {
-    wp_schedule_event(time(), 'kpay_order_status_checking_schedule', 'kinesis_pay_gateway_event_update_order_status');
-    // wp_schedule_single_event(time() + 10, 'kinesis_pay_gateway_event_update_order_status');
-  }
-  add_action('kinesis_pay_gateway_event_update_order_status', 'kinesis_pay_gateway_update_order_status');
-}
-
-/**
- * remove_schedule
- *
- * @return void
- */
-function remove_schedule()
-{
-  $timestamp = wp_next_scheduled('kinesis_pay_gateway_event_update_order_status');
-  if ($timestamp) {
-    wp_unschedule_event($timestamp, 'kinesis_pay_gateway_event_update_order_status');
-  }
-}
-register_deactivation_hook(__FILE__, 'remove_schedule');
-
-/**
- * Create payment error page
- *
- * @return void
- */
-function kinesis_pay_gateway_create_error_page()
-{
-  if (!current_user_can('activate_plugins')) {
-    return;
-  }
-  $page_slug = 'kpay-payment-error'; // Slug of the Post
-  $new_page = array(
-    'post_type'     => 'page',         // Post Type Slug eg: 'page', 'post'
-    'post_title'    => 'Payment Error',  // Title of the Content
-    'post_content'  => 'Failed to finish Kinesis Pay payment.',  // Content
-    'post_status'   => 'publish',      // Post Status
-    'post_author'   => 1,          // Post Author ID
-    'post_name'     => $page_slug      // Slug of the Post
-  );
-  if (!get_page_by_path($page_slug, OBJECT, 'page')) { // Check If Page Not Exits
-    wp_insert_post($new_page);
-  }
-}
-
-/**
- * Add page for version 1.0.0
- *
- * @return void
- */
-function kinesis_pay_gateway_update_1_0_0_add_page()
-{
-  add_action('init', 'kinesis_pay_gateway_create_error_page');
 }
 
 /**
@@ -206,4 +127,49 @@ function kinesis_pay_gateway_update_1_1_0()
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     $wpdb->query($sql);
   }
+}
+
+/**
+ * Upgrade function for version 1.1.1
+ *
+ * @return void
+ */
+function kinesis_pay_gateway_update_1_1_1()
+{
+  global $wpdb;
+  $table_name = $wpdb->prefix . 'kinesis_payments';
+  $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$table_name}' AND column_name = 'from_address'");
+
+  if (empty($row)) {
+    $sql = "ALTER TABLE `{$table_name}`
+      ADD from_address varchar(60) AFTER `expiry_at`,
+      ADD to_address varchar(60) AFTER `from_address`,
+      ADD transaction_hash varchar(76) AFTER `to_address`
+    ";
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    $wpdb->query($sql);
+  }
+}
+
+/**
+ * Remove legacy error page
+ *
+ * @return void
+ */
+function remove_error_page()
+{
+  $page = get_page_by_path('kpay-payment-error', OBJECT, 'page');
+  if (isset($page)) {
+    wp_delete_post($page->ID);
+  }
+}
+
+/**
+ * Upgrade function for version 2.0.0
+ *
+ * @return void
+ */
+function kinesis_pay_gateway_update_2_0_0()
+{
+  add_action('init', 'remove_error_page');
 }

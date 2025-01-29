@@ -40,7 +40,7 @@ final class Kinesis_Pay_WooCommerce
      * 
      * @var boolean
      */
-    private $test_mode = true;
+    private $test_mode = false;
 
     /**
      * Kinesis Pay API base url

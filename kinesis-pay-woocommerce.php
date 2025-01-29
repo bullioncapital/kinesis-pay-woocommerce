@@ -6,7 +6,7 @@
  * Author: Kinesis Money
  * Author URI: https://kinesis.money/
  * Description: Pay with Kinesis Money
- * Version: 2.0.0
+ * Version: 2.1.0
  */
 
 // Prevent public user to directly access .php files through URL
@@ -19,7 +19,7 @@ final class Kinesis_Pay_WooCommerce
      * 
      * @var string
      */
-    private $version = '2.0.0';
+    private $version = '2.1.0';
 
     /**
      * Min required WordPress version

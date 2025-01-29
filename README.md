@@ -66,3 +66,9 @@
 10. Some UI changes in frontend and admin
 11. Enhanced error handling
 12. Enhanced form data security check
+
+### Ver. 2.1.0
+
+1. Added `Test API Connection` feature to payment settings page
+2. Renamed `Live Publishable Key` to `Access Token`, `Live Private Key` to `Secret Token`
+3. Changed to disable the gateway if it fails to connect to API when saving payment settings

@@ -36,17 +36,24 @@ function getHeaders($url, $public_key, $private_key, $content = '', $method = 'G
  * @param  string $api
  * @param  string $body
  * @param  string $method
+ * @param  string $access_token
+ * @param  string $secret_token
  * @return object
  */
-function call_kinesis($api, $body = '', $method = 'GET')
+function call_kinesis($api, $body = '', $method = 'GET', $access_token = null, $secret_token = null)
 {
 	$options = get_option('woocommerce_kinesis_pay_gateway_settings');
-	if (Kinesis_Pay_WooCommerce::get()->get_test_mode()) {
-		$public_key = $options['test_publishable_key'];
-		$private_key = $options['test_private_key'];
+	if ($access_token && $secret_token) {
+		$public_key = $access_token;
+		$private_key = $secret_token;
 	} else {
-		$public_key = $options['publishable_key'];
-		$private_key = $options['private_key'];
+		if (Kinesis_Pay_WooCommerce::get()->get_test_mode()) {
+			$public_key = $options['test_publishable_key'];
+			$private_key = $options['test_private_key'];
+		} else {
+			$public_key = $options['publishable_key'];
+			$private_key = $options['private_key'];
+		}
 	}
 	$base_url = Kinesis_Pay_WooCommerce::get()->get_api_base_url();
 	$url = $base_url . $api;
@@ -67,7 +74,13 @@ function call_kinesis($api, $body = '', $method = 'GET')
 	$status_code = wp_remote_retrieve_response_code($response);
 	if (is_wp_error($response) || ($status_code != 200 && $status_code != 201)) {
 		error_log(print_r(json_encode($response), true));
-		throw new Exception(wp_remote_retrieve_body($response), $status_code);
+		$resp_body_obj = json_decode(wp_remote_retrieve_body($response));
+		if (is_object($resp_body_obj)) {
+			$error_message = $resp_body_obj->message;
+		} else {
+			$error_message = wp_remote_retrieve_body($response);
+		}
+		throw new Exception($error_message, $status_code);
 	}
 	return $response;
 }
@@ -171,5 +184,33 @@ function request_confirm_payment($payment_id, $order_id)
 		throw new Exception(__('Unable to confirm payment. ', 'kinesis-pay-gateway') . $response->get_error_message(), $status_code);
 	}
 
+	return json_decode(wp_remote_retrieve_body($response));
+}
+
+/**
+ * Request for testing API connection
+ *
+ * @param  string $merchant_id
+ * @param  string $access_token
+ * @param  string $secret_token
+ * @return void
+ */
+function request_test_connection($merchant_id, $access_token, $secret_token)
+{
+	try {
+		$response = call_kinesis('/api/merchants/merchant/sdk/handshake/' . $merchant_id, '', 'GET', $access_token, $secret_token);
+	} catch (Exception $e) {
+		$code = $e->getCode();
+		if ($code === 403) {
+			throw new Exception(__('Invalid Access Token or Secret Token. ', 'kinesis-pay-gateway'), $code);
+		} else {
+			throw new Exception($e->getMessage(), $code);
+		}
+	}
+	$status_code = wp_remote_retrieve_response_code($response);
+	if (is_wp_error($response) || ($status_code != 200 && $status_code != 201)) {
+		error_log(print_r($response, true));
+		throw new Exception($response->get_error_message(), $status_code);
+	}
 	return json_decode(wp_remote_retrieve_body($response));
 }

@@ -72,3 +72,14 @@
 1. Added `Test API Connection` feature to payment settings page
 2. Renamed `Live Publishable Key` to `Access Token`, `Live Private Key` to `Secret Token`
 3. Changed to disable the gateway if it fails to connect to API when saving payment settings
+
+### Ver. 2.1.1
+
+1. On the payment page, added an initial modal that connects to the KMS and evaluates if the Payment ID is `created` (showing payment instructions) or `accepted` (redirecting to the order-received page)
+2. On the order-received page, added informative text when the Payment ID status is `accepted`
+3. Added a setting to delete the Kinesis Payments database table upon plugin uninstall
+4. Added a new WP-Cron job to sync payment statuses from the KMS, complementary to the existing on-demand sync when a customer accesses my-account/orders page
+5. Deactivating or unistalling clears the scheduled WP-Cron jobs
+6. UI changes in the frontend to use the KMS typography and color palette
+7. Added hooks to prevent the 'pay' ability on orders with an `accepted` Payment Id
+8. Added hooks to prevent the 'cancel' ability on orders with an `accepted` Payment Id

@@ -527,9 +527,11 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
             $this->enabled = 'no';
             $this->method_description .= sprintf('<br><span style="font-weight: 600;color: #E33A3D;">%s</span>', __('*Currency is not supported. The payment gateway has been disabled.', 'kinesis-pay-gateway'));
         }
+
+        include_once(KINESIS_PAY_DIR_PATH . 'includes/wc-filters.php');
     }
 
-    /**
+     /**
      * Sync payment and cancel/process order before loading account orders
      * @hook woocommerce_before_account_orders
      *
@@ -636,6 +638,14 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
                 'label' => 'Enabled',
                 'type' => 'checkbox',
                 'description' => __('Shows payment log on WooCommerce order details page for debugging purpose.', 'kinesis-pay-gateway'),
+                'default' => 'no',
+                'desc_tip' => false,
+            ),
+            'uninstall_deletes_table' => array(
+                'title' => __('Uninstalling deletes data', 'kinesis-pay-gateway'),
+                'label' => 'Enabled',
+                'type' => 'checkbox',
+                'description' => __('Select to delete all Kinesis Pay data upon plugin uninstall.', 'kinesis-pay-gateway'),
                 'default' => 'no',
                 'desc_tip' => false,
             ),
@@ -791,9 +801,31 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
             <div class="kinesis-pay-modal__logo-wrapper">
                 <img class="kinesis-pay-modal__kpay-logo" src="<?php echo $assets_url; ?>Kinesis-Pay-logo.svg">
             </div>
-            <div id="kinesis-pay-modal__kpay-qrcode"></div>
+            <div>
+                <div class="progress-animation">
+                    <div class="circle border"></div>
+                </div>
+            </div>
             <div class="kinesis-pay-modal__instructions-wrapper">
-                <span class="kinesis-pay-modal__instructions"><?php echo __('Scan with the Kinesis mobile app or', 'kinesis-pay-gateway') ?></span>
+                <span class="kinesis-pay-modal__instructions kinesis-pay-modal__confirmation"><?php echo __('Connecting...', 'kinesis-pay-gateway') ?></span>
+            </div>
+            <button id="kinesis-pay-modal__cancel-payment-button" class="kinesis-pay-modal__cart-button kinesis-pay-modal__button"><?php echo __('Go back to cart', 'kinesis-pay-gateway'); ?></button>
+        </div>
+        <?php
+        $initial_modal_html = ob_get_clean();
+
+        ob_start();
+        ?>
+        <div id="kinesis-pay-modal__content">
+            <div class="kinesis-pay-modal__logo-wrapper">
+                <img class="kinesis-pay-modal__kpay-logo" src="<?php echo $assets_url; ?>Kinesis-Pay-logo.svg">
+            </div>
+            <div>
+                <div id="kinesis-pay-modal__kpay-qrcode"></div>
+                <span class="kinesis-pay-modal__status-countdown"><?php echo __('Checking payment in: ', 'kinesis-pay-gateway') ?><span id="kinesis-pay-modal__check-status-countdown">--s</span></span>
+            </div>
+            <div class="kinesis-pay-modal__instructions-wrapper">
+                <span class="kinesis-pay-modal__instructions"><?php echo __('Scan to pay or', 'kinesis-pay-gateway') ?></span>
                 <a id="kinesis-pay-modal__payment-link" href="<?php echo $kpay_redirect_url ?>" target="_blank"><?php echo __('Continue in browser', 'kinesis-pay-gateway') ?></a>
             </div>
             <div class="kinesis-pay-modal__payment-id-copy-wrapper">
@@ -802,13 +834,47 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
                     <input id="kinesis-pay-modal__payment-id-text" type="text" value="<?php echo $payment_id; ?>" readonly>
                     <button id="kinesis-pay-modal__copy-button" class="kinesis-pay-modal__copy-button kinesis-pay-modal__button" onclick="copyPaymentId(event)"><?php echo __('Copy', 'kinesis-pay-gateway'); ?></button>
                 </div>
-                <span class="kinesis-pay-modal__instructions"><?php echo __('Please keep this window open. It will close automatically once your payment has been processed.', 'kinesis-pay-gateway') ?></span>
-                <span class="kinesis-pay-modal__status-countdown"><?php echo __('Checking payment in: ', 'kinesis-pay-gateway') ?><span id="kinesis-pay-modal__check-status-countdown">--s</span></span>
             </div>
-            <button id="kinesis-pay-modal__cancel-payment-button" class="kinesis-pay-modal__cart-button kinesis-pay-modal__button"><?php echo __('Cancel', 'kinesis-pay-gateway'); ?></button>
+            <button id="kinesis-pay-modal__cancel-payment-button" class="kinesis-pay-modal__cart-button kinesis-pay-modal__button"><?php echo __('Go back to cart', 'kinesis-pay-gateway'); ?></button>
         </div>
         <?php
         $payment_modal_html = ob_get_clean();
+
+        ob_start();
+        ?>
+        <div id="kinesis-pay-modal__content">
+            <div class="kinesis-pay-modal__logo-wrapper">
+                <img class="kinesis-pay-modal__kpay-logo" src="<?php echo $assets_url; ?>Kinesis-Pay-logo.svg">
+            </div>
+            <div>
+                <div class="progress-animation">
+                    <div class="circle border"></div>
+                </div>
+            </div>
+            <div class="kinesis-pay-modal__instructions-wrapper">
+                <span class="kinesis-pay-modal__instructions kinesis-pay-modal__confirmation"><?php echo __('Processing your payment', 'kinesis-pay-gateway') ?></span>
+            </div>
+        </div>
+        <?php
+        $confirmation_modal_html = ob_get_clean();
+
+        ob_start();
+        ?>
+        <div id="kinesis-pay-modal__content">
+            <div class="kinesis-pay-modal__logo-wrapper">
+                <img class="kinesis-pay-modal__kpay-logo" src="<?php echo $assets_url; ?>Kinesis-Pay-logo.svg">
+            </div>
+            <div>
+                <div class="progress-animation">
+                    <div class="circle border"></div>
+                </div>
+            </div>
+            <div class="kinesis-pay-modal__instructions-wrapper">
+                <span class="kinesis-pay-modal__instructions kinesis-pay-modal__confirmation"><?php echo __('Payment accepted. Processing...', 'kinesis-pay-gateway') ?></span>
+            </div>
+        </div>
+        <?php
+        $accepted_modal_html = ob_get_clean();
 
         ob_start();
         ?>
@@ -816,7 +882,7 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
             <img class="kinesis-pay-modal__kpay-logo" src="<?php echo $assets_url; ?>Kinesis-Pay-logo.svg">
             <span class="kinesis-pay-modal__timeout-message"><?php echo __('Payment has been timed out. Please try again.', 'kinesis-pay-gateway'); ?></span>
         </div>
-        <button id="timeout-go-back-to-cart" class="kinesis-pay-modal__cart-button kinesis-pay-modal__button" onclick="this.disabled = true; window.location='<?php echo wc_get_cart_url(); ?>'"><?php echo __('Go to cart', 'kinesis-pay-gateway'); ?></button>
+        <button id="timeout-go-back-to-cart" class="kinesis-pay-modal__cart-button kinesis-pay-modal__button" onclick="this.disabled = true; window.location='<?php echo wc_get_cart_url(); ?>'"><?php echo __('Go back to cart', 'kinesis-pay-gateway'); ?></button>
         <?php
         $timeout_html = ob_get_clean();
 
@@ -833,15 +899,20 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
             'kpay-payment-script',
             'kpay_data',
             array(
+                'order_id' => $order->get_id(),
+                'order_key' => $order->get_order_key(),
                 'kpay_payment_id' => $payment_id,
                 'get_payment_status_action' => 'woocommerce_get_payment_status',
                 'kpay_redirect_url' => $kpay_redirect_url,
+                'checkout_url' => wc_get_checkout_url(),
                 'timeout_redirect_url' => wc_get_cart_url(),
                 'rejected_redirect_url' => wc_get_checkout_url(),
                 'error_redirect_url' => wc_get_checkout_url(),
                 'callback_url' => add_query_arg(array('wc-api' => 'kpay-payment'), trailingslashit(get_home_url())),
                 'cancel_url' => apply_filters('kpay_payment_cancel_payment', wc_get_checkout_url(), $this->get_return_url($order), $order),
                 'kpay_payment_status' => array(
+                    'created' => self::STATUS_CREATED,
+                    'accepted' => self::STATUS_ACCEPTED,
                     'processed' => self::STATUS_PROCESSED,
                     'rejected' => self::STATUS_REJECTED,
                     'expired' => self::STATUS_EXPIRED,
@@ -854,9 +925,12 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
                     'copy_error' => __('Failed to copy payment ID', 'kinesis-pay-gateway'),
                     'copied' => __('Copied', 'kinesis-pay-gateway'),
                 ),
+                'initial_modal_html' => $initial_modal_html,
                 'payment_modal_html' => $payment_modal_html,
+                'confirmation_modal_html' => $confirmation_modal_html,
+                'accepted_modal_html' => $accepted_modal_html,
                 'timeout_html' => $timeout_html,
-                'timeout_peirod' => 600000,
+                'timeout_period' => 600000,
                 'payment_form_content' => $payment_form_content,
             )
         );
@@ -921,7 +995,8 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
                 $message = __('Something wrong with requesting payment status. ', 'kinesis-pay-gateway') . $e->getMessage();
                 throw new Exception($message);
             }
-            if ($response->status === $this->capture_ready_payment_status) {
+            $payment_processed = isset($response->status) && $response->status === $this->capture_ready_payment_status;
+            if ($payment_processed) {
                 // Confirm payment and process order
                 self::confirm_payment($payment_id, $order_id);
                 self::process_order($order, $payment_id);
@@ -1015,8 +1090,8 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
                 wp_die($message, get_bloginfo('name'), array('link_url' => '/cart', 'link_text' => __('Go to cart', 'kinesis-pay-gateway')));
                 exit;
             }
-            $payment_status_ok = isset($response->status) && $response->status === $this->capture_ready_payment_status;
-            if (!$payment_status_ok) {
+            $payment_processed = isset($response->status) && $response->status === $this->capture_ready_payment_status;
+            if (!$payment_processed) {
                 error_log('Incorrect payment status when capturing fund.');
                 $message = __('Incorrect payment status when capturing fund.', 'kinesis-pay-gateway');
                 wp_die($message, get_bloginfo('name'), array('link_url' => '/cart', 'link_text' => __('Go to cart', 'kinesis-pay-gateway')));
@@ -1058,6 +1133,7 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
 
         if ($this->enabled === 'yes' && $order->needs_payment() && $order->has_status($this->unpaid_order_status)) {
         ?>
+
             <section class="kpay-section">
                 <span class="kpay-waiting-text kpay-span" style="display: none;"><?php esc_html_e('Processing your order. Please wait and don\'t close or refresh the page.', 'kinesis-pay-gateway'); ?></span>
                 <form id="kpay-payment-confirm-hidden-form" class="kpay-payment-confirm-form" style="display: none;"></form>

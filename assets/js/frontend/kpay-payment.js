@@ -4,24 +4,30 @@ jQuery( function( $ ) {
       return false;
     }
 
+    const data_order_id = kpay_data.order_id;
+    const data_order_key = kpay_data.order_key;
     const data_kms_url = kpay_data.kpay_redirect_url;
     const data_payment_id = kpay_data.kpay_payment_id;
     const data_get_status_action = kpay_data.get_payment_status_action;
     const data_payment_status = kpay_data.kpay_payment_status;
+    const data_checkout_url = kpay_data.checkout_url;
     const data_timeout_url = kpay_data.timeout_redirect_url;
     const data_rejected_url = kpay_data.rejected_redirect_url;
     const data_error_url = kpay_data.error_redirect_url;
     const data_cancel_url = kpay_data.cancel_url;
     const data_messages = kpay_data.messages;
-    const data_modal_html = kpay_data.payment_modal_html;
+    const data_initial_modal_html = kpay_data.initial_modal_html;
+    const data_payment_modal_html = kpay_data.payment_modal_html;
+    const data_confirmation_modal_html = kpay_data.confirmation_modal_html;
+    const data_accepted_modal_html = kpay_data.accepted_modal_html;
     const data_timeout_html = kpay_data.timeout_html;
     const data_payment_form_content = kpay_data.payment_form_content;
     const checking_int = 10;
-    const timeout_period = kpay_data.timeout_peirod ? kpay_data.timeout_peirod : 600000;
+    const timeout_period = kpay_data.timeout_period ? kpay_data.timeout_period : 600000;
     let countdown = checking_int;
 
     $('body').append(`<div id="kinesis-pay-modal" style="display: none;"></div>`);
-    document.getElementById('kinesis-pay-modal').innerHTML = data_modal_html;
+    document.getElementById('kinesis-pay-modal').innerHTML = data_initial_modal_html;
 
     const kpay_modal = $('#kinesis-pay-modal');
     if (!kpay_modal.length) {
@@ -29,21 +35,6 @@ jQuery( function( $ ) {
       window.location = data_error_url;
       return false;
     }
-
-    const qrcode_elem = document.getElementById('kinesis-pay-modal__kpay-qrcode');
-    if (!qrcode_elem) {
-      alert(data_messages.general_error);
-      window.location = data_error_url;
-      return false;
-    }
-    new QRCode(qrcode_elem, {
-      text: data_kms_url,
-      width: 160,
-      height: 160,
-      colorDark : "#000000",
-      colorLight : "#ffffff",
-      correctLevel : QRCode.CorrectLevel.L
-    });
     
     window.scrollTo(0, 0);
     $('html, body').css({
@@ -64,10 +55,14 @@ jQuery( function( $ ) {
       }
     }, timeout_period);
 
-    const countdown_elem = document.getElementById("kinesis-pay-modal__check-status-countdown");
+    let countdown_elem;
+    let first_check = true;
     const check_status_timer = setInterval(() => {
-      countdown_elem.textContent = `${countdown}s`;
-      if (countdown <= 0) {
+      countdown_elem = document.getElementById("kinesis-pay-modal__check-status-countdown");
+      if ( countdown_elem ) {
+        countdown_elem.textContent = `${countdown}s`;
+      }
+      if (countdown <= 0 || first_check) {
         $.ajax({
           type: 'GET',
           dataType: 'json',
@@ -76,11 +71,16 @@ jQuery( function( $ ) {
           success: (response) => {
             if(response.type == 'success') {
               const payment_status = response.data;
-              if (payment_status === data_payment_status.processed) {
+              if ( payment_status === data_payment_status.accepted ) {
                 clearInterval(check_status_timer);
                 clearTimeout(timeout);
-                $('.kpay-waiting-text').show();
-                $('#kinesis-pay-modal').hide(); 
+                document.getElementById('kinesis-pay-modal').innerHTML = data_accepted_modal_html;
+                window.location = `${data_checkout_url}?order-received=${data_order_id}&key=${data_order_key}`;
+                return false;
+              } else if ( payment_status === data_payment_status.processed ) {
+                clearInterval(check_status_timer);
+                clearTimeout(timeout);
+                document.getElementById('kinesis-pay-modal').innerHTML = data_confirmation_modal_html;
                 const kpay_hidden_form = $('#kpay-payment-confirm-hidden-form');
                 kpay_hidden_form.attr('method', 'POST');
                 kpay_hidden_form.attr('enctype', 'multipart/form-data');
@@ -105,6 +105,25 @@ jQuery( function( $ ) {
                   alert(data_messages.timeout_error);
                   window.location = data_timeout_url;
                 }
+              } else { /* data_payment_status.created */
+                let qrcode_elem = document.getElementById('kinesis-pay-modal__kpay-qrcode');
+                  if (!qrcode_elem) {
+                    document.getElementById('kinesis-pay-modal').innerHTML = data_payment_modal_html;
+                  qrcode_elem = document.getElementById('kinesis-pay-modal__kpay-qrcode');
+                  if (!qrcode_elem) {
+                    alert(data_messages.general_error);
+                    window.location = data_error_url;
+                    return false;
+                  }
+                  new QRCode(qrcode_elem, {
+                    text: data_kms_url,
+                    width: 120,
+                    height: 120,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.L
+                  });
+                }
               }
             }
             return false;
@@ -113,18 +132,20 @@ jQuery( function( $ ) {
             console.log(`${data_messages.exception_error} ${error.responseJSON && error.responseJSON.message ? error.responseJSON.message : ''}`);
           }
         });
-        countdown = checking_int
+        countdown = checking_int;
+        first_check = false;
       }
       countdown--;
     }, 1000);
-
-    const cancel_button = document.getElementById('kinesis-pay-modal__cancel-payment-button');
-    if (cancel_button) {
-      cancel_button.addEventListener('click', () => {
-        cancel_button.disabled = true;
-        clearInterval(check_status_timer);
-        clearTimeout(timeout);
-        window.location = data_cancel_url;
+    const kpay_modal_button_wrapper = document.getElementById('kinesis-pay-modal');
+    if (kpay_modal_button_wrapper) {
+      kpay_modal_button_wrapper.addEventListener('click', (event) => {
+        if (event.target.id === 'kinesis-pay-modal__cancel-payment-button') {
+          event.target.disabled = true;
+          clearInterval(check_status_timer);
+          clearTimeout(timeout);
+          window.location = data_cancel_url;
+        }
       });
     }
   });

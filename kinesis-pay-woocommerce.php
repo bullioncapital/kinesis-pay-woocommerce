@@ -6,7 +6,7 @@
  * Author: Kinesis Money
  * Author URI: https://kinesis.money/
  * Description: Pay with Kinesis Money
- * Version: 2.1.0
+ * Version: 2.1.1
  */
 
 // Prevent public user to directly access .php files through URL
@@ -19,7 +19,7 @@ final class Kinesis_Pay_WooCommerce
      * 
      * @var string
      */
-    private $version = '2.1.0';
+    private $version = '2.1.1';
 
     /**
      * Min required WordPress version
@@ -176,6 +176,7 @@ final class Kinesis_Pay_WooCommerce
                 set_transient('kinesis-pay-activated', true, 60);
             }
         );
+        register_deactivation_hook(KINESIS_PAY_FILE, 'kpay_plugin_deactivation');
         $this->init_plugin();
         do_action('kinesis_pay_loaded');
     }
@@ -214,6 +215,8 @@ final class Kinesis_Pay_WooCommerce
      */
     private function init_plugin()
     {
+        include_once(KINESIS_PAY_DIR_PATH . 'includes/wp-cron.php');
+
         add_action('plugins_loaded', array($this, 'load_plugin_files'), 1);
         add_action('plugins_loaded', array($this, 'load_localization'), 5);
         add_action('before_woocommerce_init', array($this, 'declare_compatibility'));
@@ -370,6 +373,14 @@ final class Kinesis_Pay_WooCommerce
             }
         }
     }
+}
+
+/**
+ * Actions to perform when the plugin is deactivated
+ */
+function kpay_plugin_deactivation() {
+    // Clear any scheduled hooks
+    wp_clear_scheduled_hook('kpay_sync_statuses');
 }
 
 Kinesis_Pay_WooCommerce::get();

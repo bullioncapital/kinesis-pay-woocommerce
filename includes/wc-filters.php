@@ -2,16 +2,20 @@
     add_filter('woocommerce_thankyou_order_received_text', 'kms_accepted_order_received_text', 21, 2);
     function kms_accepted_order_received_text($text, $order ) {
 
-        $payment = Kinesis_Pay_Gateway::get_payment_by_id(null, $order->get_id());
+        $payment_method = $order->get_payment_method();
+        if (Kinesis_Pay_Gateway::is_payment_method_kinesis_pay($payment_method)) {
 
-        if (!$payment || empty($payment->payment_id)) {
-            $order->update_status('cancelled', __('Order cancelled due to payment creation failure.', 'kinesis-pay-gateway'));
-            return $text;
-        }
+            $payment = Kinesis_Pay_Gateway::get_payment_by_id(null, $order->get_id());
 
-        if (kms_payment_is_accepted($order)) {
-            $kms_url = Kinesis_Pay_WooCommerce::get()->get_kms_base_url();
-            $text = __('Your payment (ID:'.$payment->payment_id.') has been &lsquo;accepted&rsquo; and needs to be processed.<br>Please check your <a href="'.$kms_url.'/home/transactions" target="_blank">KMS transactions</a> for additional information.', 'kinesis-pay-gateway');
+            if ( !$payment || empty($payment->payment_id)) {
+                $order->update_status('cancelled', __('Order cancelled due to payment creation failure.', 'kinesis-pay-gateway'));
+                return $text;
+            }
+
+            if (kms_payment_is_accepted($order)) {
+                $kms_url = Kinesis_Pay_WooCommerce::get()->get_kms_base_url();
+                $text = __('Your payment (ID:'.$payment->payment_id.') has been &lsquo;accepted&rsquo; and needs to be processed.<br>Please check your <a href="'.$kms_url.'/home/transactions" target="_blank">KMS transactions</a> for additional information.', 'kinesis-pay-gateway');
+            }
         }
         return $text;
     }

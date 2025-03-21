@@ -83,3 +83,7 @@
 6. UI changes in the frontend to use the KMS typography and color palette
 7. Added hooks to prevent the 'pay' ability on orders with an `accepted` Payment Id
 8. Added hooks to prevent the 'cancel' ability on orders with an `accepted` Payment Id
+
+### Ver. 2.1.2
+
+1. Fixed issue where orders not using Kinesis Pay were cancelled when the payment record was not created.

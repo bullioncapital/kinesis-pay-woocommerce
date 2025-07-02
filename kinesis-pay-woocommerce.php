@@ -6,7 +6,7 @@
  * Author: Kinesis Money
  * Author URI: https://kinesis.money/
  * Description: Pay with Kinesis Money
- * Version: 2.1.2
+ * Version: 2.2.0
  */
 
 // Prevent public user to directly access .php files through URL
@@ -19,7 +19,7 @@ final class Kinesis_Pay_WooCommerce
      * 
      * @var string
      */
-    private $version = '2.1.2';
+    private $version = '2.2.0';
 
     /**
      * Min required WordPress version
@@ -61,14 +61,14 @@ final class Kinesis_Pay_WooCommerce
      *
      * @var string
      */
-    private $test_api_base_url = 'https://qa1-api.kinesis.money';
+    private $test_api_base_url = 'https://qa4-api.kinesis.money';
 
     /**
      * Test KMS base url
      *
      * @var string
      */
-    private $test_kms_base_url = 'https://qa1-kms.kinesis.money';
+    private $test_kms_base_url = 'https://qa4-kms.kinesis.money';
 
     /**
      * Kinesis exchange rates url
@@ -378,7 +378,8 @@ final class Kinesis_Pay_WooCommerce
 /**
  * Actions to perform when the plugin is deactivated
  */
-function kpay_plugin_deactivation() {
+function kpay_plugin_deactivation()
+{
     // Clear any scheduled hooks
     wp_clear_scheduled_hook('kpay_sync_statuses');
 }

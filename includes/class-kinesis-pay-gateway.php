@@ -317,7 +317,7 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
                 $wpdb->query(
                     $wpdb->prepare(
                         "UPDATE $tablename
-                            SET `order_id` = %d, `payment_id` = %s, `payment_status`= %s, `kpay_order_id` = %s, `payment_currency` = %s, `payment_amount` = %f, `payment_fee` = %f, `usd_converted_amount` = %f, `payment_kau_amount` = %f, `payment_kag_amount` = %f, `created_at` = %s, `updated_at` = %s, `expiry_at` = %s, `from_address` = %s, `to_address` = %s, `transaction_hash` = %s, `description` = %s
+                            SET `order_id` = %d, `payment_id` = %s, `payment_status`= %s, `kpay_order_id` = %s, `payment_currency` = %s, `payment_amount` = %f, `payment_fee` = %f, `usd_converted_amount` = %f, `payment_currency_net_amount` = %f, `preferred_currency` = %s, `preferred_currency_amount` = %f, `created_at` = %s, `updated_at` = %s, `expiry_at` = %s, `from_address` = %s, `to_address` = %s, `transaction_hash` = %s, `description` = %s
                             WHERE `id` = %s",
                         array(
                             $order_id,
@@ -325,11 +325,12 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
                             $response->status,
                             isset($response->orderId) ? $response->orderId : $query_payment->kpay_order_id,
                             isset($response->paymentCurrency) ? $response->paymentCurrency : $query_payment->payment_currency,
-                            isset($response->paymentAmount) ? $response->paymentAmount : $query_payment->payment_amount,
-                            isset($response->paymentFee) ? $response->paymentFee : $query_payment->payment_fee,
+                            isset($response->paymentCurrencyAmount) ? $response->paymentCurrencyAmount : $query_payment->payment_amount,
+                            isset($response->paymentCurrencyFee) ? $response->paymentCurrencyFee : $query_payment->payment_fee,
                             isset($response->usdConvertedAmount) ? $response->usdConvertedAmount : $query_payment->usd_converted_amount,
-                            $response->paymentKauAmount,
-                            $response->paymentKagAmount,
+                            isset($response->paymentCurrencyNetAmount) ? $response->paymentCurrencyNetAmount : null,
+                            $response->preferredCurrency,
+                            isset($response->preferredCurrencyAmount) ? $response->preferredCurrencyAmount : null,
                             $response->createdAt,
                             $response->updatedAt,
                             $response->expiryAt,
@@ -358,18 +359,19 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
             $wpdb->query(
                 $wpdb->prepare(
                     "INSERT INTO $tablename
-                        ( order_id, payment_id, payment_status, kpay_order_id, payment_currency, payment_amount, payment_fee, usd_converted_amount, payment_kau_amount, payment_kag_amount, expiry_at, created_at, updated_at, from_address, to_address, transaction_hash, `description` )
-                        VALUES ( %d, %s, %s, %s, %s, %.5f, %.5f, %.2f, %.5f, %.5f, %s, %s, %s, %s, %s, %s, %s )",
+                        ( order_id, payment_id, payment_status, kpay_order_id, payment_currency, payment_amount, payment_fee, usd_converted_amount, payment_currency_net_amount, preferred_currency, preferred_currency_amount, expiry_at, created_at, updated_at, from_address, to_address, transaction_hash, `description` )
+                        VALUES ( %d, %s, %s, %s, %s, %f, %f, %f, %f, %s, %f, %s, %s, %s, %s, %s, %s, %s )",
                     $order_id,
                     $payment_id,
                     $response->status,
                     isset($response->orderId) ? $response->orderId : null,
                     isset($response->paymentCurrency) ? $response->paymentCurrency : null,
-                    isset($response->paymentAmount) ? $response->paymentAmount : null,
-                    isset($response->paymentFee) ? $response->paymentFee : null,
+                    isset($response->paymentCurrencyAmount) ? $response->paymentCurrencyAmount : null,
+                    isset($response->paymentCurrencyFee) ? $response->paymentCurrencyFee : null,
                     isset($response->usdConvertedAmount) ? $response->usdConvertedAmount : null,
-                    $response->paymentKauAmount,
-                    $response->paymentKagAmount,
+                    isset($response->paymentCurrencyNetAmount) ? $response->paymentCurrencyNetAmount : null,
+                    $response->preferredCurrency,
+                    isset($response->preferredCurrencyAmount) ? $response->preferredCurrencyAmount : null,
                     $response->createdAt,
                     $response->updatedAt,
                     $response->expiryAt,
@@ -531,7 +533,7 @@ class Kinesis_Pay_Gateway extends WC_Payment_Gateway
         include_once(KINESIS_PAY_DIR_PATH . 'includes/wc-filters.php');
     }
 
-     /**
+    /**
      * Sync payment and cancel/process order before loading account orders
      * @hook woocommerce_before_account_orders
      *

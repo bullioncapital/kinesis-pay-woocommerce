@@ -4,16 +4,7 @@
 defined('ABSPATH') || exit;
 
 global $kinesis_pay_gateway_version;
-global $api_base_url;
-global $kms_base_url;
-global $test_api_base_url;
-global $test_kms_base_url;
-
-$kinesis_pay_gateway_version = '1.1.1'; // Latest plugin version
-$api_base_url = 'https://apip.kinesis.money';
-$kms_base_url = 'https://kms.kinesis.money';
-$test_api_base_url = 'https://qa1-api.kinesis.money';
-$test_kms_base_url = 'https://qa1-kms.kinesis.money';
+$kinesis_pay_gateway_version = '2.2.0'; // Latest plugin version
 
 /**
  * Mapping of version numbers and upgrade functions
@@ -34,6 +25,9 @@ function get_kinesis_pay_gateway_updates()
     ),
     '2.0.0' => array(
       'kinesis_pay_gateway_update_2_0_0',
+    ),
+    '2.2.0' => array(
+      'kinesis_pay_gateway_update_2_2_0',
     )
   );
 }
@@ -172,4 +166,40 @@ function remove_error_page()
 function kinesis_pay_gateway_update_2_0_0()
 {
   add_action('init', 'remove_error_page');
+}
+
+/**
+ * Upgrade function for version 2.2.0
+ *
+ * @return void
+ */
+function kinesis_pay_gateway_update_2_2_0()
+{
+  global $wpdb;
+  $table_name = $wpdb->prefix . 'kinesis_payments';
+
+  // Modify existing columns
+  $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$table_name}' AND column_name = 'payment_amount'");
+  if (!empty($row)) {
+    $sql = "ALTER TABLE `{$table_name}`
+      MODIFY COLUMN payment_amount DECIMAL(16,8) COMMENT 'paymentCurrencyAmount in API response',
+      MODIFY COLUMN payment_fee DECIMAL(16,8) COMMENT 'paymentCurrencyFee in API response',
+      MODIFY COLUMN payment_kau_amount DECIMAL(16,5) COMMENT 'Column deprecated, use payment_currency_net_amount instead',
+      MODIFY COLUMN payment_kag_amount DECIMAL(16,5) COMMENT 'Column deprecated, use payment_currency_net_amount instead'
+    ";
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    $wpdb->query($sql);
+  }
+
+  // Add new columns
+  $row = $wpdb->get_results("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '{$table_name}' AND column_name = 'payment_currency_net_amount'");
+  if (empty($row)) {
+    $sql = "ALTER TABLE `{$table_name}`
+      ADD payment_currency_net_amount DECIMAL(16, 8) COMMENT 'paymentCurrencyNetAmount in API response' AFTER `payment_amount`,
+      ADD preferred_currency VARCHAR(8) AFTER `payment_fee`,
+      ADD preferred_currency_amount DECIMAL(16, 8) AFTER `preferred_currency`
+    ";
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    $wpdb->query($sql);
+  }
 }

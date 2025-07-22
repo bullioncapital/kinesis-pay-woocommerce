@@ -1,5 +1,7 @@
 <?php
-    add_filter('woocommerce_thankyou_order_received_text', 'kms_accepted_order_received_text', 21, 2);
+    if ( is_user_logged_in() ) {
+        add_filter('woocommerce_thankyou_order_received_text', 'kms_accepted_order_received_text', 21, 2);
+    }
     function kms_accepted_order_received_text($text, $order ) {
 
         $payment_method = $order->get_payment_method();

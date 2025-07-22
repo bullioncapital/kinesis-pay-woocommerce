@@ -86,8 +86,12 @@
 
 ### Ver. 2.1.2
 
-1. Fixed issue where orders not using Kinesis Pay were cancelled when the payment record was not created.
+1. Fixed issue where orders not using Kinesis Pay were cancelled when the payment record was not created
 
 ### Ver. 2.2.0
 
 1. Update table columns as per API changes
+
+### Ver. 2.2.1
+
+1. Fixed issue where the thank you page generated a fatal error if the user was not logged in
